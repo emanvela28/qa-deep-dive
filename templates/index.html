@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>QA Review Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    .glass {
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.55);
+    }
+    .hover-card {
+      transition: all 0.18s ease;
+    }
+    .hover-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+    }
+    .pill {
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      font-size: 0.9rem;
+      color: #374151;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pill:hover {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+      color: #4338ca;
+      transform: translateY(-1px);
+    }
+    .pill-active {
+      background: #6366f1;
+      color: white !important;
+      border-color: #4f46e5;
+      box-shadow: 0 6px 16px rgba(99,102,241,0.35);
+    }
+
+    .rating-card {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .rating-card-active {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 30px rgba(0,0,0,0.15);
+    }
+    .rating-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 18px 32px rgba(0,0,0,0.12);
+    }
+
+    /* TABLE ALIGNMENT FIX */
+    .table-fixed {
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    .table-header th,
+    .table-body td {
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+      white-space: nowrap;
+    }
+
+    /* Correct widths for ALL REVIEWERS table */
+    #all-reviewers-body td:nth-child(1),
+    .table-header th:nth-child(1) {
+      width: 30%;
+      text-align: left;
+    }
+
+    #all-reviewers-body td:nth-child(2),
+    #all-reviewers-body td:nth-child(3),
+    #all-reviewers-body td:nth-child(4),
+    #all-reviewers-body td:nth-child(5),
+    #all-reviewers-body td:nth-child(6),
+    .table-header th:nth-child(2),
+    .table-header th:nth-child(3),
+    .table-header th:nth-child(4),
+    .table-header th:nth-child(5),
+    .table-header th:nth-child(6) {
+      width: 14%;
+      text-align: center;
+    }
+
+    /* Reviewers who gave: X table alignment */
+    #rating-reviewers-body td:nth-child(1),
+    #rating-reviewers-body th:nth-child(1) {
+      width: 70%;
+      text-align: left;
+    }
+
+    #rating-reviewers-body td:nth-child(2),
+    #rating-reviewers-body th:nth-child(2) {
+      width: 30%;
+      text-align: center;
+    }
+
+    /* Smooth flash animation when reviewer detail is opened */
+    @keyframes highlightFlash {
+      0% { background-color: rgba(99,102,241,0.20); }
+      100% { background-color: transparent; }
+    }
+
+    .highlighted {
+      animation: highlightFlash 1s ease-out;
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-gray-100 via-indigo-50 to-purple-100 min-h-screen text-gray-800 p-10">
+
+  <!-- CONTRIBUTOR PILLS -->
+  <div id="contributor-pills" class="flex space-x-3 overflow-x-auto pb-4 mb-8"></div>
+
+  <!-- USER HEADER -->
+  <div id="header-section" class="mb-10">
+    <h1 id="user-title" class="text-4xl font-bold text-gray-900 mb-2"></h1>
+    <p id="user-subtitle" class="text-gray-600 text-lg"></p>
+  </div>
+
+  <!-- Rating Summary Cards -->
+  <div id="rating-cards" class="grid grid-cols-4 gap-6 mb-14"></div>
+
+  <!-- Reviewers by Selected Rating -->
+  <div class="mb-14">
+    <h2 id="rating-section-title" class="text-2xl font-semibold mb-4"></h2>
+
+    <div class="glass rounded-xl p-6 shadow hover-card">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-300/50">
+            <th class="text-left py-2 font-medium text-gray-700">Reviewer</th>
+            <th class="text-center py-2 font-medium text-gray-700">Count</th>
+          </tr>
+        </thead>
+        <tbody id="rating-reviewers-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ALL REVIEWERS TABLE -->
+  <div class="glass rounded-xl p-6 shadow hover-card">
+    <table class="table-fixed text-sm">
+      <thead class="table-header">
+        <tr class="border-b border-gray-300/50">
+          <th class="py-2 font-medium text-gray-700">Reviewer</th>
+          <th class="py-2 font-medium text-gray-700">Total</th>
+          <th class="py-2 font-medium text-gray-700">Bad</th>
+          <th class="py-2 font-medium text-gray-700">Fine</th>
+          <th class="py-2 font-medium text-gray-700">Good</th>
+          <th class="py-2 font-medium text-gray-700">Excellent</th>
+        </tr>
+      </thead>
+
+      <tbody id="all-reviewers-body" class="table-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Reviewer Detail Section -->
+  <div id="reviewer-detail-section" class="mt-12" style="display:none;">
+    <h2 id="reviewer-detail-title" class="text-2xl font-semibold mb-4"></h2>
+
+    <div class="glass highlighted rounded-xl p-6 shadow hover-card">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-300/50">
+            <th class="py-2 font-medium text-gray-700">Rating</th>
+            <th class="py-2 font-medium text-gray-700">Task</th>
+            <th class="py-2 font-medium text-gray-700">Source</th>
+            <th class="py-2 font-medium text-gray-700">Reviewed At</th>
+            <th class="py-2 font-medium text-gray-700">Comment</th>
+          </tr>
+        </thead>
+        <tbody id="reviewer-detail-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- JS -->
+<script>
+  const ratingColors = {
+    bad: "bg-red-200 text-red-800",
+    fine: "bg-orange-200 text-orange-800",
+    good: "bg-green-200 text-green-800",
+    excellent: "bg-blue-200 text-blue-800",
+  };
+
+  const activeRatingBg = {
+    bad: "bg-red-100",
+    fine: "bg-orange-100",
+    good: "bg-blue-100",
+    excellent: "bg-green-100",
+  };
+
+  const pillsEl = document.getElementById("contributor-pills");
+  const ratingCardsEl = document.getElementById("rating-cards");
+
+  const ratingReviewersBody = document.getElementById("rating-reviewers-body");
+  const ratingSectionTitle = document.getElementById("rating-section-title");
+  const allReviewersBody = document.getElementById("all-reviewers-body");
+  const reviewerDetailSection = document.getElementById("reviewer-detail-section");
+  const reviewerDetailTitle = document.getElementById("reviewer-detail-title");
+  const reviewerDetailBody = document.getElementById("reviewer-detail-body");
+
+  const userTitle = document.getElementById("user-title");
+  const userSubtitle = document.getElementById("user-subtitle");
+
+  let currentUser = null;
+  let currentSummary = null;
+  let currentRatingSelected = "bad";
+
+  async function fetchJSON(url) {
+    return (await fetch(url)).json();
+  }
+
+  async function init() {
+    const data = await fetchJSON("/api/users");
+    const users = data.users;
+
+    pillsEl.innerHTML = "";
+    users.forEach((username, idx) => {
+      const pill = document.createElement("div");
+      pill.className = "pill";
+      pill.textContent = username;
+      pill.onclick = () => selectUser(username, pill);
+
+      if (idx === 0) {
+        pill.classList.add("pill-active");
+        currentUser = username;
+      }
+
+      pillsEl.appendChild(pill);
+    });
+
+    await selectUser(users[0], pillsEl.children[0]);
+  }
+
+  async function selectUser(name, pillEl) {
+    Array.from(pillsEl.children).forEach(p => p.classList.remove("pill-active"));
+    pillEl.classList.add("pill-active");
+
+    currentUser = name;
+
+    const summaryData = await fetchJSON(`/api/user/${name}/summary`);
+    currentSummary = summaryData;
+
+    renderDashboard();
+  }
+
+  function renderDashboard() {
+    reviewerDetailSection.style.display = "none";
+
+    const totals = currentSummary.summaryByRating;
+    const total = Object.values(totals).reduce((a,b)=>a+b,0);
+
+    userTitle.textContent = currentSummary.name;
+    userSubtitle.textContent = `${total} total reviews`;
+
+    ratingCardsEl.innerHTML = "";
+    ["bad","fine","good","excellent"].forEach(r => {
+      const count = totals[r] || 0;
+      const card = document.createElement("div");
+
+      card.className = `glass rounded-xl p-6 shadow rating-card text-center ${
+        (r===currentRatingSelected) ? "rating-card-active " + activeRatingBg[r] : ""
+      }`;
+
+      card.innerHTML = `
+        <div class="text-3xl font-bold mb-1">${count}</div>
+        <div class="text-gray-700 capitalize">${r}</div>
+      `;
+
+      card.onclick = () => {
+        currentRatingSelected = r;
+        renderDashboard();
+      };
+
+      ratingCardsEl.appendChild(card);
+    });
+
+    renderRatingReviewers(currentRatingSelected);
+    renderAllReviewers();
+  }
+
+  function renderRatingReviewers(rating) {
+    ratingSectionTitle.textContent = `Reviewers who gave: ${rating}`;
+    const items = currentSummary.reviewersByRating[rating] || [];
+
+    ratingReviewersBody.innerHTML = "";
+
+    if (!items.length) {
+      ratingReviewersBody.innerHTML = `<tr><td colspan="2" class="py-3 text-gray-500">None</td></tr>`;
+      return;
+    }
+
+    items.forEach(item => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="py-2 text-indigo-600 truncate max-w-0 overflow-hidden">${item.reviewerId}</td>
+        <td class="py-2 text-center">${item.count}</td>
+      `;
+      ratingReviewersBody.appendChild(tr);
+    });
+  }
+
+  function renderAllReviewers() {
+    allReviewersBody.innerHTML = "";
+
+    currentSummary.reviewerTotals.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.className = "hover:bg-gray-50 cursor-pointer";
+      tr.onclick = () => loadReviewerDetail(r.reviewerId);
+
+      tr.innerHTML = `
+        <td class="py-2 text-indigo-600 truncate max-w-0 overflow-hidden">${r.reviewerId}</td>
+        <td class="py-2 text-center">${r.total}</td>
+        <td class="py-2 text-center">${r.bad}</td>
+        <td class="py-2 text-center">${r.fine}</td>
+        <td class="py-2 text-center">${r.good}</td>
+        <td class="py-2 text-center">${r.excellent}</td>
+      `;
+      allReviewersBody.appendChild(tr);
+    });
+  }
+
+  async function loadReviewerDetail(reviewerId) {
+    const data = await fetchJSON(`/api/user/${currentUser}/reviews_by_reviewer/${reviewerId}`);
+
+    reviewerDetailSection.style.display = "block";
+    reviewerDetailTitle.textContent = `Reviews by: ${reviewerId}`;
+
+    reviewerDetailBody.innerHTML = "";
+
+    data.reviews.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="py-2"><span class="px-2 py-1 rounded ${ratingColors[r.rating]}">${r.rating}</span></td>
+        <td class="py-2">${r.taskId}</td>
+        <td class="py-2">${r.sourceTable}</td>
+        <td class="py-2">${r.reviewedAt}</td>
+        <td class="py-2 text-gray-700">${r.comment || ""}</td>
+      `;
+      reviewerDetailBody.appendChild(tr);
+    });
+
+    // 🌟 Smooth scroll into view
+    reviewerDetailSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    // 🌟 Flash highlight animation for visual confirmation
+    reviewerDetailSection.classList.add("highlighted");
+    setTimeout(() => reviewerDetailSection.classList.remove("highlighted"), 1000);
+  }
+
+  init();
+</script>
+
+</body>
+</html>
