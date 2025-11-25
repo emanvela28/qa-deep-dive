@@ -7,6 +7,23 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
+    :root {
+      --accent-start: #eef2ff;
+      --accent-end: #e0f2fe;
+      --accent-border: #c7d2fe;
+    }
+
+    .pill-bar {
+      display: inline-flex;
+      gap: 0.75rem;
+      padding: 10px 12px;
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      border: 1px solid var(--accent-border);
+      border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      overflow-x: auto;
+    }
+
     .glass {
       backdrop-filter: blur(16px);
       background: rgba(255, 255, 255, 0.55);
@@ -19,30 +36,31 @@
       box-shadow: 0 12px 28px rgba(0,0,0,0.08);
     }
     .pill {
-      padding: 6px 14px;
+      padding: 9px 16px;
       border-radius: 9999px;
-      background: white;
+      background: #f8fafc;
       border: 1px solid #e5e7eb;
-      font-size: 0.9rem;
-      color: #374151;
-      transition: all 0.2s ease;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1f2937;
+      transition: all 0.18s ease;
       cursor: pointer;
       white-space: nowrap;
     }
     .pill:hover {
       background: #eef2ff;
       border-color: #c7d2fe;
-      color: #4338ca;
-      transform: translateY(-1px);
+      transform: translateY(-2px);
     }
     .pill-active {
-      background: #6366f1;
+      background: linear-gradient(120deg, #111827, #1f2937);
       color: white !important;
-      border-color: #4f46e5;
-      box-shadow: 0 6px 16px rgba(99,102,241,0.35);
+      border-color: #111827;
+      box-shadow: 0 14px 32px rgba(17,24,39,0.3);
     }
 
     .rating-card {
+      background: linear-gradient(155deg, rgba(99,102,241,0.06), rgba(59,130,246,0.04));
       transition: all 0.2s ease;
       cursor: pointer;
     }
@@ -90,17 +108,14 @@
     }
 
     /* Reviewers who gave: X table alignment */
-    #rating-reviewers-body td:nth-child(1),
-    #rating-reviewers-body th:nth-child(1) {
-      width: 70%;
-      text-align: left;
+    #rating-reviewers-table {
+      table-layout: fixed;
+      width: 100%;
     }
-
-    #rating-reviewers-body td:nth-child(2),
-    #rating-reviewers-body th:nth-child(2) {
-      width: 30%;
-      text-align: center;
-    }
+    #rating-reviewers-table td:nth-child(1),
+    #rating-reviewers-table th:nth-child(1) { width: 70%; text-align: left; }
+    #rating-reviewers-table td:nth-child(2),
+    #rating-reviewers-table th:nth-child(2) { width: 30%; text-align: center; }
 
     /* Smooth flash animation when reviewer detail is opened */
     @keyframes highlightFlash {
@@ -111,13 +126,31 @@
     .highlighted {
       animation: highlightFlash 1s ease-out;
     }
+
+    /* Subtle tinted headers */
+    .muted-header th {
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      border-bottom: 1px solid #e5e7eb !important;
+    }
+
+    /* Reviewer detail table alignment */
+    #reviewer-detail-table {
+      table-layout: auto;
+      width: 100%;
+    }
+    #reviewer-detail-table th,
+    #reviewer-detail-table td {
+      text-align: left;
+    }
   </style>
 </head>
 
 <body class="bg-gradient-to-br from-gray-100 via-indigo-50 to-purple-100 min-h-screen text-gray-800 p-10">
 
   <!-- CONTRIBUTOR PILLS -->
-  <div id="contributor-pills" class="flex space-x-3 overflow-x-auto pb-4 mb-8"></div>
+  <div class="w-full flex">
+    <div id="contributor-pills" class="pill-bar mb-8"></div>
+  </div>
 
   <!-- USER HEADER -->
   <div id="header-section" class="mb-10">
@@ -126,15 +159,15 @@
   </div>
 
   <!-- Rating Summary Cards -->
-  <div id="rating-cards" class="grid grid-cols-4 gap-6 mb-14"></div>
+  <div id="rating-cards" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-14"></div>
 
   <!-- Reviewers by Selected Rating -->
-  <div class="mb-14">
+  <div id="rating-section-container" class="mb-14">
     <h2 id="rating-section-title" class="text-2xl font-semibold mb-4"></h2>
 
     <div class="glass rounded-xl p-6 shadow hover-card">
-      <table class="w-full text-sm">
-        <thead>
+      <table id="rating-reviewers-table" class="w-full text-sm table-fixed">
+        <thead class="muted-header">
           <tr class="border-b border-gray-300/50">
             <th class="text-left py-2 font-medium text-gray-700">Reviewer</th>
             <th class="text-center py-2 font-medium text-gray-700">Count</th>
@@ -142,13 +175,14 @@
         </thead>
         <tbody id="rating-reviewers-body"></tbody>
       </table>
+      <div id="rating-reviewers-pagination" class="flex items-center justify-between mt-4 text-sm text-gray-600"></div>
     </div>
   </div>
 
   <!-- ALL REVIEWERS TABLE -->
-  <div class="glass rounded-xl p-6 shadow hover-card">
+  <div id="all-reviewers-container" class="glass rounded-xl p-6 shadow hover-card">
     <table class="table-fixed text-sm">
-      <thead class="table-header">
+      <thead class="table-header muted-header">
         <tr class="border-b border-gray-300/50">
           <th class="py-2 font-medium text-gray-700">Reviewer</th>
           <th class="py-2 font-medium text-gray-700">Total</th>
@@ -161,6 +195,7 @@
 
       <tbody id="all-reviewers-body" class="table-body"></tbody>
     </table>
+    <div id="reviewer-pagination" class="flex items-center justify-between mt-4 text-sm text-gray-600"></div>
   </div>
 
   <!-- Reviewer Detail Section -->
@@ -168,18 +203,19 @@
     <h2 id="reviewer-detail-title" class="text-2xl font-semibold mb-4"></h2>
 
     <div class="glass highlighted rounded-xl p-6 shadow hover-card">
-      <table class="w-full text-sm">
-        <thead>
+      <table id="reviewer-detail-table" class="w-full text-sm">
+        <thead class="muted-header">
           <tr class="border-b border-gray-300/50">
             <th class="py-2 font-medium text-gray-700">Rating</th>
             <th class="py-2 font-medium text-gray-700">Task</th>
             <th class="py-2 font-medium text-gray-700">Source</th>
             <th class="py-2 font-medium text-gray-700">Reviewed At</th>
-            <th class="py-2 font-medium text-gray-700">Comment</th>
+            <th class="py-2 font-medium text-gray-700">Reviewee</th>
           </tr>
         </thead>
         <tbody id="reviewer-detail-body"></tbody>
       </table>
+      <div id="reviewer-detail-pagination" class="flex items-center justify-between mt-4 text-sm text-gray-600"></div>
     </div>
   </div>
 
@@ -188,11 +224,13 @@
   const ratingColors = {
     bad: "bg-red-200 text-red-800",
     fine: "bg-orange-200 text-orange-800",
-    good: "bg-green-200 text-green-800",
-    excellent: "bg-blue-200 text-blue-800",
+    good: "bg-blue-200 text-blue-800",
+    excellent: "bg-green-200 text-green-800",
+    all: "bg-slate-200 text-slate-800",
   };
 
   const activeRatingBg = {
+    all: "bg-slate-100",
     bad: "bg-red-100",
     fine: "bg-orange-100",
     good: "bg-blue-100",
@@ -201,20 +239,34 @@
 
   const pillsEl = document.getElementById("contributor-pills");
   const ratingCardsEl = document.getElementById("rating-cards");
+  const reviewerPagination = document.getElementById("reviewer-pagination");
 
   const ratingReviewersBody = document.getElementById("rating-reviewers-body");
+  const ratingReviewersPagination = document.getElementById("rating-reviewers-pagination");
   const ratingSectionTitle = document.getElementById("rating-section-title");
   const allReviewersBody = document.getElementById("all-reviewers-body");
   const reviewerDetailSection = document.getElementById("reviewer-detail-section");
   const reviewerDetailTitle = document.getElementById("reviewer-detail-title");
   const reviewerDetailBody = document.getElementById("reviewer-detail-body");
+  const reviewerDetailPagination = document.getElementById("reviewer-detail-pagination");
+  const ratingSectionContainer = document.getElementById("rating-section-container");
+  const allReviewersContainer = document.getElementById("all-reviewers-container");
 
   const userTitle = document.getElementById("user-title");
   const userSubtitle = document.getElementById("user-subtitle");
 
   let currentUser = null;
   let currentSummary = null;
-  let currentRatingSelected = "bad";
+  let currentRatingSelected = "all";
+  let reviewerPage = 0;
+  const REVIEWERS_PAGE_SIZE = 10;
+  let ratingReviewersPage = 0;
+  const RATING_REVIEWERS_PAGE_SIZE = 10;
+  let reviewerDetailPage = 0;
+  const REVIEWER_DETAIL_PAGE_SIZE = 10;
+  let reviewerDetailRows = [];
+
+  const ratingOptions = ["all", "bad", "fine", "good", "excellent"];
 
   async function fetchJSON(url) {
     return (await fetch(url)).json();
@@ -247,6 +299,9 @@
     pillEl.classList.add("pill-active");
 
     currentUser = name;
+    currentRatingSelected = "all";
+    reviewerPage = 0;
+    ratingReviewersPage = 0;
 
     const summaryData = await fetchJSON(`/api/user/${name}/summary`);
     currentSummary = summaryData;
@@ -257,15 +312,22 @@
   function renderDashboard() {
     reviewerDetailSection.style.display = "none";
 
-    const totals = currentSummary.summaryByRating;
+    const totals = currentSummary.summaryByRating || {};
     const total = Object.values(totals).reduce((a,b)=>a+b,0);
+    const sourceUsers = currentSummary.sourceUsers || [currentUser];
+    const averageScore = currentSummary.averageScore ?? computeAverageFromSummary(totals, total);
 
     userTitle.textContent = currentSummary.name;
-    userSubtitle.textContent = `${total} total reviews`;
+    const contributorLabel = sourceUsers.length > 1
+      ? `Combined for all`
+      : `Data for ${sourceUsers[0]}`;
+    userSubtitle.textContent = `${total} total reviews • Avg score ${averageScore} / 3 • ${contributorLabel}`;
 
     ratingCardsEl.innerHTML = "";
-    ["bad","fine","good","excellent"].forEach(r => {
-      const count = totals[r] || 0;
+    ratingCardsEl.innerHTML = "";
+    ratingOptions.forEach(r => {
+      const count = r === "all" ? total : (totals[r] || 0);
+      const percent = total ? Math.round((count / total) * 100) : 0;
       const card = document.createElement("div");
 
       card.className = `glass rounded-xl p-6 shadow rating-card text-center ${
@@ -274,19 +336,28 @@
 
       card.innerHTML = `
         <div class="text-3xl font-bold mb-1">${count}</div>
-        <div class="text-gray-700 capitalize">${r}</div>
+        <div class="text-gray-700 capitalize font-medium">${r}</div>
+        <div class="text-xs text-gray-500">${percent}% of reviews</div>
       `;
 
       card.onclick = () => {
         currentRatingSelected = r;
+        ratingReviewersPage = 0;
         renderDashboard();
       };
 
       ratingCardsEl.appendChild(card);
     });
 
-    renderRatingReviewers(currentRatingSelected);
-    renderAllReviewers();
+    if (currentRatingSelected === "all") {
+      ratingSectionContainer.style.display = "none";
+      allReviewersContainer.style.display = "block";
+      renderAllReviewers();
+    } else {
+      ratingSectionContainer.style.display = "block";
+      allReviewersContainer.style.display = "none";
+      renderRatingReviewers(currentRatingSelected);
+    }
   }
 
   function renderRatingReviewers(rating) {
@@ -297,29 +368,57 @@
 
     if (!items.length) {
       ratingReviewersBody.innerHTML = `<tr><td colspan="2" class="py-3 text-gray-500">None</td></tr>`;
+      ratingReviewersPagination.innerHTML = "";
       return;
     }
 
-    items.forEach(item => {
+    const totalPages = Math.max(1, Math.ceil(items.length / RATING_REVIEWERS_PAGE_SIZE));
+    ratingReviewersPage = Math.min(ratingReviewersPage, totalPages - 1);
+    const startIdx = ratingReviewersPage * RATING_REVIEWERS_PAGE_SIZE;
+    const pageItems = items.slice(startIdx, startIdx + RATING_REVIEWERS_PAGE_SIZE);
+
+    pageItems.forEach(item => {
       const tr = document.createElement("tr");
+      tr.className = "hover:bg-gray-50 cursor-pointer";
+      tr.onclick = () => loadReviewerDetail(item.reviewerId);
       tr.innerHTML = `
-        <td class="py-2 text-indigo-600 truncate max-w-0 overflow-hidden">${item.reviewerId}</td>
+        <td class="py-2 text-indigo-600 truncate overflow-hidden">${item.reviewerId}</td>
         <td class="py-2 text-center">${item.count}</td>
       `;
       ratingReviewersBody.appendChild(tr);
     });
+
+    const showingFrom = items.length ? startIdx + 1 : 0;
+    const showingTo = Math.min(startIdx + pageItems.length, items.length);
+    ratingReviewersPagination.innerHTML = `
+      <div>Showing ${showingFrom}-${showingTo} of ${items.length}</div>
+      <div class="space-x-2">
+        <button class="px-3 py-1 rounded border text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          ${ratingReviewersPage === 0 ? "disabled" : ""}
+          onclick="changeRatingReviewerPage(-1)">Prev</button>
+        <button class="px-3 py-1 rounded border text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          ${ratingReviewersPage >= totalPages - 1 ? "disabled" : ""}
+          onclick="changeRatingReviewerPage(1)">Next</button>
+      </div>
+    `;
   }
 
   function renderAllReviewers() {
     allReviewersBody.innerHTML = "";
 
-    currentSummary.reviewerTotals.forEach(r => {
+    const items = currentSummary.reviewerTotals || [];
+    const totalPages = Math.max(1, Math.ceil(items.length / REVIEWERS_PAGE_SIZE));
+    reviewerPage = Math.min(reviewerPage, totalPages - 1);
+    const startIdx = reviewerPage * REVIEWERS_PAGE_SIZE;
+    const pageItems = items.slice(startIdx, startIdx + REVIEWERS_PAGE_SIZE);
+
+    pageItems.forEach(r => {
       const tr = document.createElement("tr");
       tr.className = "hover:bg-gray-50 cursor-pointer";
       tr.onclick = () => loadReviewerDetail(r.reviewerId);
 
       tr.innerHTML = `
-        <td class="py-2 text-indigo-600 truncate max-w-0 overflow-hidden">${r.reviewerId}</td>
+        <td class="py-2 text-indigo-600 truncate overflow-hidden">${r.reviewerId}</td>
         <td class="py-2 text-center">${r.total}</td>
         <td class="py-2 text-center">${r.bad}</td>
         <td class="py-2 text-center">${r.fine}</td>
@@ -328,27 +427,33 @@
       `;
       allReviewersBody.appendChild(tr);
     });
+
+    const showingFrom = items.length ? startIdx + 1 : 0;
+    const showingTo = Math.min(startIdx + pageItems.length, items.length);
+
+    reviewerPagination.innerHTML = `
+      <div>Showing ${showingFrom}-${showingTo} of ${items.length} reviewers</div>
+      <div class="space-x-2">
+        <button class="px-3 py-1 rounded border text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          ${reviewerPage === 0 ? "disabled" : ""}
+          onclick="changeReviewerPage(-1)">Prev</button>
+        <button class="px-3 py-1 rounded border text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          ${reviewerPage >= totalPages - 1 ? "disabled" : ""}
+          onclick="changeReviewerPage(1)">Next</button>
+      </div>
+    `;
   }
 
   async function loadReviewerDetail(reviewerId) {
     const data = await fetchJSON(`/api/user/${currentUser}/reviews_by_reviewer/${reviewerId}`);
 
+    reviewerDetailRows = data.reviews || [];
+    reviewerDetailPage = 0;
+
     reviewerDetailSection.style.display = "block";
     reviewerDetailTitle.textContent = `Reviews by: ${reviewerId}`;
 
-    reviewerDetailBody.innerHTML = "";
-
-    data.reviews.forEach(r => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="py-2"><span class="px-2 py-1 rounded ${ratingColors[r.rating]}">${r.rating}</span></td>
-        <td class="py-2">${r.taskId}</td>
-        <td class="py-2">${r.sourceTable}</td>
-        <td class="py-2">${r.reviewedAt}</td>
-        <td class="py-2 text-gray-700">${r.comment || ""}</td>
-      `;
-      reviewerDetailBody.appendChild(tr);
-    });
+    renderReviewerDetailTable();
 
     // 🌟 Smooth scroll into view
     reviewerDetailSection.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -356,6 +461,76 @@
     // 🌟 Flash highlight animation for visual confirmation
     reviewerDetailSection.classList.add("highlighted");
     setTimeout(() => reviewerDetailSection.classList.remove("highlighted"), 1000);
+  }
+
+  function renderReviewerDetailTable() {
+    reviewerDetailBody.innerHTML = "";
+
+    if (!reviewerDetailRows.length) {
+      reviewerDetailBody.innerHTML = `<tr><td colspan="5" class="py-3 text-gray-500">No reviews</td></tr>`;
+      reviewerDetailPagination.innerHTML = "";
+      return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(reviewerDetailRows.length / REVIEWER_DETAIL_PAGE_SIZE));
+    reviewerDetailPage = Math.min(reviewerDetailPage, totalPages - 1);
+    const startIdx = reviewerDetailPage * REVIEWER_DETAIL_PAGE_SIZE;
+    const pageItems = reviewerDetailRows.slice(startIdx, startIdx + REVIEWER_DETAIL_PAGE_SIZE);
+
+    pageItems.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="py-2 align-top"><span class="px-2 py-1 rounded ${ratingColors[r.rating]}">${r.rating}</span></td>
+        <td class="py-2 align-top break-words">${r.taskId}</td>
+        <td class="py-2 align-top break-words">${r.sourceTable}</td>
+        <td class="py-2 align-top">${r.reviewedAt}</td>
+        <td class="py-2 align-top text-gray-700 break-words">${currentSummary.name}</td>
+      `;
+      reviewerDetailBody.appendChild(tr);
+    });
+
+    const showingFrom = reviewerDetailRows.length ? startIdx + 1 : 0;
+    const showingTo = Math.min(startIdx + pageItems.length, reviewerDetailRows.length);
+    reviewerDetailPagination.innerHTML = `
+      <div>Showing ${showingFrom}-${showingTo} of ${reviewerDetailRows.length}</div>
+      <div class="space-x-2">
+        <button class="px-3 py-1 rounded border text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          ${reviewerDetailPage === 0 ? "disabled" : ""}
+          onclick="changeReviewerDetailPage(-1)">Prev</button>
+        <button class="px-3 py-1 rounded border text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          ${reviewerDetailPage >= totalPages - 1 ? "disabled" : ""}
+          onclick="changeReviewerDetailPage(1)">Next</button>
+      </div>
+    `;
+  }
+
+  function changeReviewerDetailPage(delta) {
+    const totalPages = Math.max(1, Math.ceil(reviewerDetailRows.length / REVIEWER_DETAIL_PAGE_SIZE));
+    reviewerDetailPage = Math.max(0, Math.min(reviewerDetailPage + delta, totalPages - 1));
+    renderReviewerDetailTable();
+  }
+
+  function changeReviewerPage(delta) {
+    const items = currentSummary.reviewerTotals || [];
+    const totalPages = Math.max(1, Math.ceil(items.length / REVIEWERS_PAGE_SIZE));
+    reviewerPage = Math.max(0, Math.min(reviewerPage + delta, totalPages - 1));
+    renderAllReviewers();
+  }
+
+  function changeRatingReviewerPage(delta) {
+    const items = currentSummary.reviewersByRating[currentRatingSelected] || [];
+    const totalPages = Math.max(1, Math.ceil(items.length / RATING_REVIEWERS_PAGE_SIZE));
+    ratingReviewersPage = Math.max(0, Math.min(ratingReviewersPage + delta, totalPages - 1));
+    renderRatingReviewers(currentRatingSelected);
+  }
+
+  function computeAverageFromSummary(totals, total) {
+    if (!total) return 0;
+    const weights = { bad: 0, fine: 1, good: 2, excellent: 3 };
+    const weightedSum = Object.entries(totals).reduce((sum, [rating, count]) => {
+      return sum + (weights[rating] || 0) * count;
+    }, 0);
+    return Math.round((weightedSum / total) * 100) / 100;
   }
 
   init();

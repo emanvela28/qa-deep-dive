@@ -23,6 +23,78 @@ block_pattern = re.compile(
     re.DOTALL
 )
 
+
+def load_reviews(name: str):
+    """
+    Load reviews for a specific user or for all users combined.
+    Returns (rows, source_users).
+    """
+    if name.lower() == "all":
+        rows = []
+        source_users = list_users()
+        for user in source_users:
+            rows.extend(parse_reviews_for_user(f"{user}.txt"))
+        return rows, source_users
+
+    filename = f"{name}.txt"
+    rows = parse_reviews_for_user(filename)
+    return rows, [name]
+
+
+def build_summary(name: str, rows, source_users):
+    """Aggregate summary data for a set of reviews."""
+    total_reviews = len(rows)
+
+    summary_by_rating = defaultdict(int)
+    for r in rows:
+        summary_by_rating[r["rating"]] += 1
+
+    reviewers_by_rating = defaultdict(lambda: defaultdict(int))
+    for r in rows:
+        reviewers_by_rating[r["rating"]][r["reviewerId"]] += 1
+
+    reviewer_totals = defaultdict(lambda: defaultdict(int))
+    for r in rows:
+        rev = r["reviewerId"]
+        reviewer_totals[rev]["total"] += 1
+        reviewer_totals[rev][r["rating"]] += 1
+
+    summary_by_rating = dict(summary_by_rating)
+    reviewers_by_rating = {
+        rating: [{"reviewerId": rid, "count": cnt}
+                 for rid, cnt in sorted(counts.items(), key=lambda x: -x[1])]
+        for rating, counts in reviewers_by_rating.items()
+    }
+    reviewer_totals = [
+        {
+            "reviewerId": rid,
+            "total": info["total"],
+            "bad": info.get("bad", 0),
+            "fine": info.get("fine", 0),
+            "good": info.get("good", 0),
+            "excellent": info.get("excellent", 0),
+        }
+        for rid, info in reviewer_totals.items()
+    ]
+    reviewer_totals.sort(key=lambda r: -r["total"])
+
+    # Weighted average score across ratings (bad=0, fine=1, good=2, excellent=3)
+    rating_weights = {"bad": 0, "fine": 1, "good": 2, "excellent": 3}
+    weighted_sum = sum(rating_weights.get(r["rating"], 0) for r in rows)
+    average_score = round(weighted_sum / total_reviews, 2) if total_reviews else 0
+
+    display_name = "All Contributors" if name.lower() == "all" else name
+    return {
+        "name": display_name,
+        "sourceUsers": source_users,
+        "totalReviews": total_reviews,
+        "averageScore": average_score,
+        "summaryByRating": summary_by_rating,
+        "reviewersByRating": reviewers_by_rating,
+        "reviewerTotals": reviewer_totals,
+    }
+
+
 def parse_reviews_for_user(filename: str):
     """Parse one page-source file into a list of review dicts."""
     path = os.path.join(DATA_DIR, filename)
@@ -81,14 +153,13 @@ def index():
 def api_users():
     """List all users (one per file)."""
     users = list_users()
-    return jsonify({"users": users})
+    return jsonify({"users": ["All"] + users})
 
 
 @app.route("/api/user/<name>/reviews")
 def api_user_reviews(name):
     """Return all raw reviews for a given user (by file name)."""
-    filename = f"{name}.txt"
-    rows = parse_reviews_for_user(filename)
+    rows, _ = load_reviews(name)
     if not rows:
         abort(404)
     return jsonify({"name": name, "reviews": rows})
@@ -102,61 +173,18 @@ def api_user_summary(name):
       - reviewer counts by rating
       - overall counts per reviewer
     """
-    filename = f"{name}.txt"
-    rows = parse_reviews_for_user(filename)
+    rows, source_users = load_reviews(name)
     if not rows:
         abort(404)
 
-    # Counts by rating
-    summary_by_rating = defaultdict(int)
-    for r in rows:
-        summary_by_rating[r["rating"]] += 1
-
-    # Reviewer counts per rating
-    reviewers_by_rating = defaultdict(lambda: defaultdict(int))
-    for r in rows:
-        reviewers_by_rating[r["rating"]][r["reviewerId"]] += 1
-
-    # Overall per reviewer
-    reviewer_totals = defaultdict(lambda: defaultdict(int))
-    for r in rows:
-        rev = r["reviewerId"]
-        reviewer_totals[rev]["total"] += 1
-        reviewer_totals[rev][r["rating"]] += 1
-
-    # Make them JSON-friendly
-    summary_by_rating = dict(summary_by_rating)
-    reviewers_by_rating = {
-        rating: [{"reviewerId": rid, "count": cnt}
-                 for rid, cnt in sorted(counts.items(), key=lambda x: -x[1])]
-        for rating, counts in reviewers_by_rating.items()
-    }
-    reviewer_totals = [
-        {
-            "reviewerId": rid,
-            "total": info["total"],
-            "bad": info.get("bad", 0),
-            "fine": info.get("fine", 0),
-            "good": info.get("good", 0),
-            "excellent": info.get("excellent", 0),
-        }
-        for rid, info in reviewer_totals.items()
-    ]
-    reviewer_totals.sort(key=lambda r: -r["total"])
-
-    return jsonify({
-        "name": name,
-        "summaryByRating": summary_by_rating,
-        "reviewersByRating": reviewers_by_rating,
-        "reviewerTotals": reviewer_totals,
-    })
+    summary = build_summary(name, rows, source_users)
+    return jsonify(summary)
 
 
 @app.route("/api/user/<name>/reviews_by_reviewer/<reviewer_id>")
 def api_user_reviews_by_reviewer(name, reviewer_id):
     """Return all reviews for this user given by a specific reviewer."""
-    filename = f"{name}.txt"
-    rows = parse_reviews_for_user(filename)
+    rows, _ = load_reviews(name)
     if not rows:
         abort(404)
 
